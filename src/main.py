@@ -1,27 +1,25 @@
+#!/usr/bin/env python3
 """
-Todo Application - Main Entry Point
+Main entry point for the Todo application.
+"""
 
-This module serves as the entry point for the command-line todo application.
-"""
 import sys
-import os
-from pathlib import Path
-
-# Add the src directory to the path so imports work correctly
-src_dir = Path(__file__).parent
-sys.path.insert(0, str(src_dir))
-
-from cli.app import TodoApp
+from src.cli.cli_interface import CLIInterface
 
 
 def main():
-    """Main entry point for the todo application."""
-    app = TodoApp()
+    """
+    Main function to run the Todo application.
+    """
     try:
-        app.run()
+        cli = CLIInterface()
+        cli.run()
     except KeyboardInterrupt:
-        print("\nGoodbye!")
+        print("\nExiting...")
         sys.exit(0)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
