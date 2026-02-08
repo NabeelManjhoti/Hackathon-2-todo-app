@@ -1,7 +1,5 @@
 """FastAPI application entry point."""
 
-import json
-import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -11,39 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from src.config import settings
 from src.database import create_db_and_tables
+from src.logger import structured_logger
 from src.routers import health, tasks
-
-# Configure structured logging
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format='%(message)s',
-)
-logger = logging.getLogger(__name__)
-
-
-class StructuredLogger:
-    """Structured JSON logger for consistent log formatting."""
-
-    @staticmethod
-    def log(level: str, message: str, **kwargs: object) -> None:
-        """Log a structured JSON message.
-
-        Args:
-            level: Log level (INFO, ERROR, etc.)
-            message: Log message
-            **kwargs: Additional fields to include in log
-        """
-        log_data = {
-            "level": level,
-            "message": message,
-            **kwargs,
-        }
-        logger.log(getattr(logging, level), json.dumps(log_data))
-
-
-structured_logger = StructuredLogger()
 
 
 @asynccontextmanager

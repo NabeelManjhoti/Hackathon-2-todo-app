@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies.database import get_db
-from src.main import structured_logger
+from src.logger import structured_logger
 from src.models.task import Task
 from src.schemas.task import CreateTaskRequest, TaskResponse, UpdateTaskRequest
 
