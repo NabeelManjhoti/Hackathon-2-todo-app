@@ -76,8 +76,9 @@ async def signup(
 
     # Return user info and token
     return AuthResponse(
+        access_token=token,
+        token_type="bearer",
         user=UserResponse.model_validate(new_user),
-        token=token,
     )
 
 
@@ -129,8 +130,9 @@ async def signin(
 
     # Return user info and token
     return AuthResponse(
+        access_token=token,
+        token_type="bearer",
         user=UserResponse.model_validate(user),
-        token=token,
     )
 
 

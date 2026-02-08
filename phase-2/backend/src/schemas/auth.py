@@ -75,15 +75,20 @@ class AuthResponse(BaseModel):
     """Response schema for authentication endpoints.
 
     Attributes:
+        access_token: JWT access token
+        token_type: Token type (always "bearer")
         user: User information (without password)
-        token: JWT access token
     """
 
+    access_token: str = Field(
+        ...,
+        description="JWT access token",
+    )
+    token_type: str = Field(
+        default="bearer",
+        description="Token type (always bearer)",
+    )
     user: UserResponse = Field(
         ...,
         description="User information (without password)",
-    )
-    token: str = Field(
-        ...,
-        description="JWT access token",
     )
