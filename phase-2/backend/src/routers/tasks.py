@@ -1,20 +1,19 @@
-"""Task CRUD endpoints."""
+"""Task CRUD endpoints with authentication and user isolation."""
 
 from datetime import datetime
-from typing import List
-from uuid import UUID, uuid4
+from typing import Annotated, List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies.database import get_db
+from src.dependencies.auth import get_current_user
+from src.dependencies.database import get_session
 from src.logger import structured_logger
 from src.models.task import Task
+from src.models.user import User
 from src.schemas.task import CreateTaskRequest, TaskResponse, UpdateTaskRequest
-
-# Type ignore for SQLModel column comparisons (mypy doesn't understand SQLModel's magic)
-# These are valid SQLAlchemy/SQLModel expressions
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -24,112 +23,90 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
     response_model=TaskResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create new task",
-    description="Create a new task with title and optional description/due date",
+    description="Create a new task for the authenticated user",
 )
 async def create_task(
     task_data: CreateTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Task:
-    """Create a new task.
+    """Create a new task for the authenticated user.
 
     Args:
         task_data: Task creation data (title, description, due_date)
-        db: Database session from dependency injection
+        current_user: Authenticated user from JWT token
+        session: Database session from dependency injection
 
     Returns:
         Created task with all fields including generated ID and timestamps
 
     Raises:
-        HTTPException: 400 if validation fails, 500 if database error
+        HTTPException: 401 if not authenticated, 400 if validation fails
     """
-    try:
-        # Generate UUIDs for id and user_id
-        task_id = uuid4()
-        user_id = uuid4()  # Placeholder until authentication is implemented
+    # Create task instance with authenticated user's ID
+    task = Task(
+        user_id=current_user.id,
+        title=task_data.title,
+        description=task_data.description,
+        due_date=task_data.due_date,
+        completed=False,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
 
-        # Create task instance
-        task = Task(
-            id=task_id,
-            user_id=user_id,
-            title=task_data.title,
-            description=task_data.description,
-            due_date=task_data.due_date,
-            completed=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        )
+    # Save to database
+    session.add(task)
+    await session.commit()
+    await session.refresh(task)
 
-        # Save to database
-        db.add(task)
-        await db.commit()
-        await db.refresh(task)
+    structured_logger.log(
+        "INFO",
+        "Task created",
+        task_id=str(task.id),
+        user_id=str(current_user.id),
+        title=task.title,
+    )
 
-        structured_logger.log(
-            "INFO",
-            "Task created",
-            task_id=str(task.id),
-            title=task.title,
-        )
-
-        return task
-
-    except Exception as e:
-        structured_logger.log(
-            "ERROR",
-            "Failed to create task",
-            error=str(e),
-            error_type=type(e).__name__,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create task",
-        )
+    return task
 
 
 @router.get(
     "",
     response_model=List[TaskResponse],
     status_code=status.HTTP_200_OK,
-    summary="List all tasks",
-    description="Retrieve all tasks in the system",
+    summary="List user's tasks",
+    description="Retrieve all tasks belonging to the authenticated user",
 )
 async def list_tasks(
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> List[Task]:
-    """List all tasks.
+    """List all tasks for the authenticated user.
 
     Args:
-        db: Database session from dependency injection
+        current_user: Authenticated user from JWT token
+        session: Database session from dependency injection
 
     Returns:
-        List of all tasks in the database
+        List of tasks belonging to the authenticated user
 
     Raises:
-        HTTPException: 500 if database error
+        HTTPException: 401 if not authenticated
     """
-    try:
-        result = await db.execute(select(Task))
-        tasks = result.scalars().all()
+    # Filter tasks by authenticated user's ID
+    result = await session.execute(
+        select(Task).where(Task.user_id == current_user.id)  # type: ignore[arg-type]
+    )
+    tasks = result.scalars().all()
 
-        structured_logger.log(
-            "INFO",
-            "Tasks retrieved",
-            count=len(tasks),
-        )
+    structured_logger.log(
+        "INFO",
+        "Tasks retrieved",
+        user_id=str(current_user.id),
+        count=len(tasks),
+    )
 
-        return list(tasks)
-
-    except Exception as e:
-        structured_logger.log(
-            "ERROR",
-            "Failed to retrieve tasks",
-            error=str(e),
-            error_type=type(e).__name__,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve tasks",
-        )
+    return list(tasks)
 
 
 @router.get(
@@ -137,62 +114,63 @@ async def list_tasks(
     response_model=TaskResponse,
     status_code=status.HTTP_200_OK,
     summary="Get single task",
-    description="Retrieve a specific task by its ID",
+    description="Retrieve a specific task (must be owned by authenticated user)",
 )
 async def get_task(
     task_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Task:
-    """Get a single task by ID.
+    """Get a single task by ID (with ownership verification).
 
     Args:
         task_id: UUID of the task to retrieve
-        db: Database session from dependency injection
+        current_user: Authenticated user from JWT token
+        session: Database session from dependency injection
 
     Returns:
         Task with the specified ID
 
     Raises:
-        HTTPException: 404 if task not found, 422 if invalid UUID, 500 if database error
+        HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
-    try:
-        result = await db.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
-        task = result.scalar_one_or_none()
+    result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
+    task = result.scalar_one_or_none()
 
-        if task is None:
-            structured_logger.log(
-                "ERROR",
-                "Task not found",
-                task_id=str(task_id),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            )
-
-        structured_logger.log(
-            "INFO",
-            "Task retrieved",
-            task_id=str(task.id),
-            title=task.title,
-        )
-
-        return task
-
-    except HTTPException:
-        raise
-    except Exception as e:
+    if task is None:
         structured_logger.log(
             "ERROR",
-            "Failed to retrieve task",
+            "Task not found",
             task_id=str(task_id),
-            error=str(e),
-            error_type=type(e).__name__,
+            user_id=str(current_user.id),
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve task",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
         )
+
+    # Verify ownership
+    if task.user_id != current_user.id:
+        structured_logger.log(
+            "WARNING",
+            "Unauthorized task access attempt",
+            task_id=str(task_id),
+            task_owner=str(task.user_id),
+            requesting_user=str(current_user.id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this task",
+        )
+
+    structured_logger.log(
+        "INFO",
+        "Task retrieved",
+        task_id=str(task.id),
+        user_id=str(current_user.id),
+    )
+
+    return task
 
 
 @router.put(
@@ -200,140 +178,144 @@ async def get_task(
     response_model=TaskResponse,
     status_code=status.HTTP_200_OK,
     summary="Update task",
-    description="Update all fields of an existing task",
+    description="Update a task (must be owned by authenticated user)",
 )
 async def update_task(
     task_id: UUID,
     task_data: UpdateTaskRequest,
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Task:
-    """Update an existing task.
+    """Update an existing task (with ownership verification).
 
     Args:
         task_id: UUID of the task to update
         task_data: Task update data (all fields optional)
-        db: Database session from dependency injection
+        current_user: Authenticated user from JWT token
+        session: Database session from dependency injection
 
     Returns:
         Updated task with new values
 
     Raises:
-        HTTPException: 404 if task not found, 400 if validation fails, 500 if database error
+        HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
-    try:
-        # Fetch existing task
-        result = await db.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
-        task = result.scalar_one_or_none()
+    # Fetch existing task
+    result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
+    task = result.scalar_one_or_none()
 
-        if task is None:
-            structured_logger.log(
-                "ERROR",
-                "Task not found for update",
-                task_id=str(task_id),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            )
-
-        # Update provided fields
-        update_data = task_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(task, field, value)
-
-        # Update timestamp
-        task.updated_at = datetime.utcnow()
-
-        await db.commit()
-        await db.refresh(task)
-
-        structured_logger.log(
-            "INFO",
-            "Task updated",
-            task_id=str(task.id),
-            updated_fields=list(update_data.keys()),
-        )
-
-        return task
-
-    except HTTPException:
-        raise
-    except Exception as e:
+    if task is None:
         structured_logger.log(
             "ERROR",
-            "Failed to update task",
+            "Task not found for update",
             task_id=str(task_id),
-            error=str(e),
-            error_type=type(e).__name__,
+            user_id=str(current_user.id),
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update task",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
         )
+
+    # Verify ownership
+    if task.user_id != current_user.id:
+        structured_logger.log(
+            "WARNING",
+            "Unauthorized task update attempt",
+            task_id=str(task_id),
+            task_owner=str(task.user_id),
+            requesting_user=str(current_user.id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this task",
+        )
+
+    # Update provided fields
+    update_data = task_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(task, field, value)
+
+    # Update timestamp
+    task.updated_at = datetime.utcnow()
+
+    await session.commit()
+    await session.refresh(task)
+
+    structured_logger.log(
+        "INFO",
+        "Task updated",
+        task_id=str(task.id),
+        user_id=str(current_user.id),
+        updated_fields=list(update_data.keys()),
+    )
+
+    return task
 
 
 @router.delete(
     "/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete task",
-    description="Delete a task by its ID",
+    description="Delete a task (must be owned by authenticated user)",
 )
 async def delete_task(
     task_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> None:
-    """Delete a task.
+    """Delete a task (with ownership verification).
 
     Args:
         task_id: UUID of the task to delete
-        db: Database session from dependency injection
+        current_user: Authenticated user from JWT token
+        session: Database session from dependency injection
 
     Returns:
         None (204 No Content)
 
     Raises:
-        HTTPException: 404 if task not found, 500 if database error
+        HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
-    try:
-        # Fetch existing task
-        result = await db.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
-        task = result.scalar_one_or_none()
+    # Fetch existing task
+    result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
+    task = result.scalar_one_or_none()
 
-        if task is None:
-            structured_logger.log(
-                "ERROR",
-                "Task not found for deletion",
-                task_id=str(task_id),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            )
-
-        # Delete task
-        await db.delete(task)
-        await db.commit()
-
-        structured_logger.log(
-            "INFO",
-            "Task deleted",
-            task_id=str(task_id),
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
+    if task is None:
         structured_logger.log(
             "ERROR",
-            "Failed to delete task",
+            "Task not found for deletion",
             task_id=str(task_id),
-            error=str(e),
-            error_type=type(e).__name__,
+            user_id=str(current_user.id),
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete task",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
         )
+
+    # Verify ownership
+    if task.user_id != current_user.id:
+        structured_logger.log(
+            "WARNING",
+            "Unauthorized task deletion attempt",
+            task_id=str(task_id),
+            task_owner=str(task.user_id),
+            requesting_user=str(current_user.id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this task",
+        )
+
+    # Delete task
+    await session.delete(task)
+    await session.commit()
+
+    structured_logger.log(
+        "INFO",
+        "Task deleted",
+        task_id=str(task_id),
+        user_id=str(current_user.id),
+    )
 
 
 @router.patch(
@@ -341,67 +323,69 @@ async def delete_task(
     response_model=TaskResponse,
     status_code=status.HTTP_200_OK,
     summary="Toggle task completion",
-    description="Toggle the completion status of a task (completed ↔ incomplete)",
+    description="Toggle completion status (must be owned by authenticated user)",
 )
 async def toggle_task_completion(
     task_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Task:
-    """Toggle task completion status.
+    """Toggle task completion status (with ownership verification).
 
     Args:
         task_id: UUID of the task to toggle
-        db: Database session from dependency injection
+        current_user: Authenticated user from JWT token
+        session: Database session from dependency injection
 
     Returns:
         Updated task with toggled completion status
 
     Raises:
-        HTTPException: 404 if task not found, 500 if database error
+        HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
-    try:
-        # Fetch existing task
-        result = await db.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
-        task = result.scalar_one_or_none()
+    # Fetch existing task
+    result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
+    task = result.scalar_one_or_none()
 
-        if task is None:
-            structured_logger.log(
-                "ERROR",
-                "Task not found for completion toggle",
-                task_id=str(task_id),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            )
-
-        # Toggle completion status
-        task.completed = not task.completed
-        task.updated_at = datetime.utcnow()
-
-        await db.commit()
-        await db.refresh(task)
-
-        structured_logger.log(
-            "INFO",
-            "Task completion toggled",
-            task_id=str(task.id),
-            completed=task.completed,
-        )
-
-        return task
-
-    except HTTPException:
-        raise
-    except Exception as e:
+    if task is None:
         structured_logger.log(
             "ERROR",
-            "Failed to toggle task completion",
+            "Task not found for completion toggle",
             task_id=str(task_id),
-            error=str(e),
-            error_type=type(e).__name__,
+            user_id=str(current_user.id),
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to toggle task completion",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
         )
+
+    # Verify ownership
+    if task.user_id != current_user.id:
+        structured_logger.log(
+            "WARNING",
+            "Unauthorized task completion toggle attempt",
+            task_id=str(task_id),
+            task_owner=str(task.user_id),
+            requesting_user=str(current_user.id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this task",
+        )
+
+    # Toggle completion status
+    task.completed = not task.completed
+    task.updated_at = datetime.utcnow()
+
+    await session.commit()
+    await session.refresh(task)
+
+    structured_logger.log(
+        "INFO",
+        "Task completion toggled",
+        task_id=str(task.id),
+        user_id=str(current_user.id),
+        completed=task.completed,
+    )
+
+    return task

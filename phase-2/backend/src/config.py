@@ -19,6 +19,11 @@ class Settings:
         self.port: int = int(os.getenv("PORT", "8000"))
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
+        # JWT Authentication settings
+        self.jwt_secret: str = self._get_required_env("JWT_SECRET")
+        self.jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
+        self.jwt_expiry_minutes: int = int(os.getenv("JWT_EXPIRY_MINUTES", "60"))
+
     def _get_required_env(self, key: str) -> str:
         """Get required environment variable or raise error.
 

@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.database import create_db_and_tables
 from src.logger import structured_logger
-from src.routers import health, tasks
+from src.routers import auth, health, tasks
 
 
 @asynccontextmanager
@@ -160,4 +160,5 @@ async def log_requests(request: Request, call_next):
 
 # Register routers
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(tasks.router)  # type: ignore[has-type]
