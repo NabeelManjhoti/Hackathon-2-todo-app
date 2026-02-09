@@ -111,7 +111,7 @@ export default function TaskForm({
           onChange={handleChange}
           disabled={loading}
           rows={3}
-          className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-base transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-base text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
         {fieldErrors.description && (
           <p className="mt-1 text-sm text-red-600" role="alert">

@@ -43,9 +43,12 @@ async def create_task(
     Raises:
         HTTPException: 401 if not authenticated, 400 if validation fails
     """
+    # Store user_id to avoid lazy loading issues
+    user_id = current_user.id
+
     # Create task instance with authenticated user's ID
     task = Task(
-        user_id=current_user.id,
+        user_id=user_id,
         title=task_data.title,
         description=task_data.description,
         due_date=task_data.due_date,
@@ -63,11 +66,12 @@ async def create_task(
         "INFO",
         "Task created",
         task_id=str(task.id),
-        user_id=str(current_user.id),
+        user_id=str(user_id),
         title=task.title,
     )
 
-    return task
+    # Convert to response model to avoid async serialization issues
+    return TaskResponse.model_validate(task)
 
 
 @router.get(
@@ -93,20 +97,24 @@ async def list_tasks(
     Raises:
         HTTPException: 401 if not authenticated
     """
+    # Store user_id to avoid lazy loading issues
+    user_id = current_user.id
+
     # Filter tasks by authenticated user's ID
     result = await session.execute(
-        select(Task).where(Task.user_id == current_user.id)  # type: ignore[arg-type]
+        select(Task).where(Task.user_id == user_id)  # type: ignore[arg-type]
     )
     tasks = result.scalars().all()
 
     structured_logger.log(
         "INFO",
         "Tasks retrieved",
-        user_id=str(current_user.id),
+        user_id=str(user_id),
         count=len(tasks),
     )
 
-    return list(tasks)
+    # Convert to response models to avoid async serialization issues
+    return [TaskResponse.model_validate(task) for task in tasks]
 
 
 @router.get(
@@ -134,6 +142,9 @@ async def get_task(
     Raises:
         HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
+    # Store user_id to avoid lazy loading issues
+    user_id = current_user.id
+
     result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
     task = result.scalar_one_or_none()
 
@@ -142,7 +153,7 @@ async def get_task(
             "ERROR",
             "Task not found",
             task_id=str(task_id),
-            user_id=str(current_user.id),
+            user_id=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,13 +161,13 @@ async def get_task(
         )
 
     # Verify ownership
-    if task.user_id != current_user.id:
+    if task.user_id != user_id:
         structured_logger.log(
             "WARNING",
             "Unauthorized task access attempt",
             task_id=str(task_id),
             task_owner=str(task.user_id),
-            requesting_user=str(current_user.id),
+            requesting_user=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -167,10 +178,11 @@ async def get_task(
         "INFO",
         "Task retrieved",
         task_id=str(task.id),
-        user_id=str(current_user.id),
+        user_id=str(user_id),
     )
 
-    return task
+    # Convert to response model to avoid async serialization issues
+    return TaskResponse.model_validate(task)
 
 
 @router.put(
@@ -200,6 +212,9 @@ async def update_task(
     Raises:
         HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
+    # Store user_id to avoid lazy loading issues
+    user_id = current_user.id
+
     # Fetch existing task
     result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
     task = result.scalar_one_or_none()
@@ -209,7 +224,7 @@ async def update_task(
             "ERROR",
             "Task not found for update",
             task_id=str(task_id),
-            user_id=str(current_user.id),
+            user_id=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -217,13 +232,13 @@ async def update_task(
         )
 
     # Verify ownership
-    if task.user_id != current_user.id:
+    if task.user_id != user_id:
         structured_logger.log(
             "WARNING",
             "Unauthorized task update attempt",
             task_id=str(task_id),
             task_owner=str(task.user_id),
-            requesting_user=str(current_user.id),
+            requesting_user=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -245,11 +260,12 @@ async def update_task(
         "INFO",
         "Task updated",
         task_id=str(task.id),
-        user_id=str(current_user.id),
+        user_id=str(user_id),
         updated_fields=list(update_data.keys()),
     )
 
-    return task
+    # Convert to response model to avoid async serialization issues
+    return TaskResponse.model_validate(task)
 
 
 @router.delete(
@@ -276,6 +292,9 @@ async def delete_task(
     Raises:
         HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
+    # Store user_id to avoid lazy loading issues
+    user_id = current_user.id
+
     # Fetch existing task
     result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
     task = result.scalar_one_or_none()
@@ -285,7 +304,7 @@ async def delete_task(
             "ERROR",
             "Task not found for deletion",
             task_id=str(task_id),
-            user_id=str(current_user.id),
+            user_id=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -293,13 +312,13 @@ async def delete_task(
         )
 
     # Verify ownership
-    if task.user_id != current_user.id:
+    if task.user_id != user_id:
         structured_logger.log(
             "WARNING",
             "Unauthorized task deletion attempt",
             task_id=str(task_id),
             task_owner=str(task.user_id),
-            requesting_user=str(current_user.id),
+            requesting_user=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -314,7 +333,7 @@ async def delete_task(
         "INFO",
         "Task deleted",
         task_id=str(task_id),
-        user_id=str(current_user.id),
+        user_id=str(user_id),
     )
 
 
@@ -343,6 +362,9 @@ async def toggle_task_completion(
     Raises:
         HTTPException: 401 if not authenticated, 403 if not owner, 404 if not found
     """
+    # Store user_id to avoid lazy loading issues
+    user_id = current_user.id
+
     # Fetch existing task
     result = await session.execute(select(Task).where(Task.id == task_id))  # type: ignore[arg-type]
     task = result.scalar_one_or_none()
@@ -352,7 +374,7 @@ async def toggle_task_completion(
             "ERROR",
             "Task not found for completion toggle",
             task_id=str(task_id),
-            user_id=str(current_user.id),
+            user_id=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -360,13 +382,13 @@ async def toggle_task_completion(
         )
 
     # Verify ownership
-    if task.user_id != current_user.id:
+    if task.user_id != user_id:
         structured_logger.log(
             "WARNING",
             "Unauthorized task completion toggle attempt",
             task_id=str(task_id),
             task_owner=str(task.user_id),
-            requesting_user=str(current_user.id),
+            requesting_user=str(user_id),
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -384,8 +406,9 @@ async def toggle_task_completion(
         "INFO",
         "Task completion toggled",
         task_id=str(task.id),
-        user_id=str(current_user.id),
+        user_id=str(user_id),
         completed=task.completed,
     )
 
-    return task
+    # Convert to response model to avoid async serialization issues
+    return TaskResponse.model_validate(task)
