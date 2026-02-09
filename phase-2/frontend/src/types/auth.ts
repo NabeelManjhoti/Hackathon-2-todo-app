@@ -8,7 +8,7 @@
  * User object returned from backend
  */
 export interface User {
-  id: number;
+  id: string; // UUID from backend
   email: string;
   created_at?: string;
   updated_at?: string;

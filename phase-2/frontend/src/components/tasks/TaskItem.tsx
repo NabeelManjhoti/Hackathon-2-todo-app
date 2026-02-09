@@ -12,9 +12,9 @@ import Button from '@/src/components/ui/Button';
 
 export interface TaskItemProps {
   task: Task;
-  onToggleComplete: (id: number, isCompleted: boolean) => Promise<void>;
+  onToggleComplete: (id: string) => Promise<void>;
   onEdit: (task: Task) => void;
-  onDelete: (id: number) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export default function TaskItem({
@@ -27,7 +27,7 @@ export default function TaskItem({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleToggleComplete = async () => {
-    await onToggleComplete(task.id, !task.is_completed);
+    await onToggleComplete(task.id);
   };
 
   const handleDelete = async () => {
@@ -44,16 +44,16 @@ export default function TaskItem({
         <button
           onClick={handleToggleComplete}
           className="mt-1 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-          aria-label={task.is_completed ? 'Mark as incomplete' : 'Mark as complete'}
+          aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
         >
           <div
             className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
-              task.is_completed
+              task.completed
                 ? 'bg-blue-600 border-blue-600'
                 : 'border-gray-300 hover:border-blue-500'
             }`}
           >
-            {task.is_completed && (
+            {task.completed && (
               <svg
                 className="h-3 w-3 text-white"
                 fill="none"
@@ -76,7 +76,7 @@ export default function TaskItem({
         <div className="flex-1 min-w-0">
           <h3
             className={`text-base font-medium ${
-              task.is_completed
+              task.completed
                 ? 'text-gray-500 line-through'
                 : 'text-gray-900'
             }`}
@@ -87,7 +87,7 @@ export default function TaskItem({
           {task.description && (
             <p
               className={`mt-1 text-sm ${
-                task.is_completed ? 'text-gray-400' : 'text-gray-600'
+                task.completed ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               {task.description}

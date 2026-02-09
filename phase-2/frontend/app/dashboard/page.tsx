@@ -65,7 +65,7 @@ export default function DashboardPage() {
   };
 
   // Handle delete task
-  const handleDeleteTask = async (id: number) => {
+  const handleDeleteTask = async (id: string) => {
     const result = await removeTask(id);
 
     if (result) {
@@ -75,8 +75,8 @@ export default function DashboardPage() {
   };
 
   // Handle toggle complete
-  const handleToggleComplete = async (id: number, isCompleted: boolean) => {
-    await toggleComplete(id, isCompleted);
+  const handleToggleComplete = async (id: string) => {
+    await toggleComplete(id);
   };
 
   // Handle edit button click

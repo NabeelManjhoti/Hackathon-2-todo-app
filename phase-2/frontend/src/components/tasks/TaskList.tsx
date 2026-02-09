@@ -15,9 +15,9 @@ import TaskListSkeleton from './TaskListSkeleton';
 export interface TaskListProps {
   tasks: Task[];
   loading?: boolean;
-  onToggleComplete: (id: number, isCompleted: boolean) => Promise<void>;
+  onToggleComplete: (id: string) => Promise<void>;
   onEdit: (task: Task) => void;
-  onDelete: (id: number) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   onCreateTask?: () => void;
 }
 
@@ -40,8 +40,8 @@ export default function TaskList({
   }
 
   // Separate completed and incomplete tasks
-  const incompleteTasks = tasks.filter((task) => !task.is_completed);
-  const completedTasks = tasks.filter((task) => task.is_completed);
+  const incompleteTasks = tasks.filter((task) => !task.completed);
+  const completedTasks = tasks.filter((task) => task.completed);
 
   return (
     <div className="space-y-6">
