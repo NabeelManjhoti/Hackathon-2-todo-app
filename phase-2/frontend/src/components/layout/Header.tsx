@@ -34,29 +34,36 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b border-white/10 bg-[#12121a]/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="text-2xl font-bold text-gray-900">
+            <Link
+              href="/dashboard"
+              className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300"
+            >
               Todo App
             </Link>
 
             <nav className="hidden md:flex gap-6">
               <Link
                 href="/dashboard"
-                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                className="text-sm font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-300 relative group"
               >
                 Dashboard
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 group-hover:w-full transition-all duration-300" />
               </Link>
             </nav>
           </div>
 
           <div className="flex items-center gap-4">
             {user && (
-              <span className="text-sm text-gray-600 hidden sm:inline">
-                {user.email}
-              </span>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-sm text-gray-300">
+                  {user.email}
+                </span>
+              </div>
             )}
 
             <Button

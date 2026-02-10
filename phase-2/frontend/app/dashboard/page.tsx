@@ -87,15 +87,17 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen flex-col bg-gray-50">
+      <div className="flex min-h-screen flex-col">
         <Header />
 
         <main className="flex-1">
           <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
             {/* Page Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">My Tasks</h1>
-              <p className="mt-2 text-gray-600">
+            <div className="mb-10">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent animate-[fade-in_0.6s_ease-out]">
+                My Tasks
+              </h1>
+              <p className="mt-3 text-gray-400 text-lg animate-[fade-in_0.6s_ease-out_0.1s] opacity-0 [animation-fill-mode:forwards]">
                 Manage your tasks and stay organized
               </p>
             </div>
@@ -106,7 +108,7 @@ export default function DashboardPage() {
                 message={successMessage}
                 variant="banner"
                 onDismiss={() => setSuccessMessage(null)}
-                className="mb-6"
+                className="mb-6 animate-[slide-down_0.3s_ease-out]"
               />
             )}
 
@@ -115,13 +117,13 @@ export default function DashboardPage() {
               <ErrorMessage
                 message={error}
                 variant="banner"
-                className="mb-6"
+                className="mb-6 animate-[slide-down_0.3s_ease-out]"
               />
             )}
 
             {/* Create Task Button */}
             {!showCreateForm && !editingTask && (
-              <div className="mb-6">
+              <div className="mb-8 animate-[fade-in_0.6s_ease-out_0.2s] opacity-0 [animation-fill-mode:forwards]">
                 <Button
                   variant="primary"
                   size="md"
@@ -148,8 +150,8 @@ export default function DashboardPage() {
 
             {/* Create Task Form */}
             {showCreateForm && (
-              <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <div className="mb-8 rounded-xl border border-white/10 bg-gradient-to-br from-[#1a1a28]/90 to-[#12121a]/90 backdrop-blur-sm p-6 shadow-[0_0_30px_rgba(139,92,246,0.2)] animate-[scale-in_0.3s_ease-out]">
+                <h2 className="mb-5 text-xl font-bold text-gray-100">
                   Create New Task
                 </h2>
                 <TaskForm
@@ -162,8 +164,8 @@ export default function DashboardPage() {
 
             {/* Edit Task Form */}
             {editingTask && (
-              <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <div className="mb-8 rounded-xl border border-white/10 bg-gradient-to-br from-[#1a1a28]/90 to-[#12121a]/90 backdrop-blur-sm p-6 shadow-[0_0_30px_rgba(139,92,246,0.2)] animate-[scale-in_0.3s_ease-out]">
+                <h2 className="mb-5 text-xl font-bold text-gray-100">
                   Edit Task
                 </h2>
                 <TaskForm
@@ -176,14 +178,16 @@ export default function DashboardPage() {
             )}
 
             {/* Task List */}
-            <TaskList
-              tasks={tasks}
-              loading={loading}
-              onToggleComplete={handleToggleComplete}
-              onEdit={handleEditClick}
-              onDelete={handleDeleteTask}
-              onCreateTask={() => setShowCreateForm(true)}
-            />
+            <div className="animate-[fade-in_0.6s_ease-out_0.3s] opacity-0 [animation-fill-mode:forwards]">
+              <TaskList
+                tasks={tasks}
+                loading={loading}
+                onToggleComplete={handleToggleComplete}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteTask}
+                onCreateTask={() => setShowCreateForm(true)}
+              />
+            </div>
           </div>
         </main>
       </div>

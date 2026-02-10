@@ -24,10 +24,13 @@ export default function ErrorMessage({
   if (variant === 'inline') {
     return (
       <div
-        className={`text-sm text-red-600 ${className}`}
+        className={`text-sm text-red-400 flex items-center gap-1.5 ${className}`}
         role="alert"
         aria-live="polite"
       >
+        <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        </svg>
         {message}
       </div>
     );
@@ -36,7 +39,7 @@ export default function ErrorMessage({
   if (variant === 'banner') {
     return (
       <div
-        className={`rounded-lg bg-red-50 border border-red-200 p-4 ${className}`}
+        className={`rounded-xl bg-red-500/10 border border-red-500/30 backdrop-blur-sm p-4 ${className}`}
         role="alert"
         aria-live="polite"
       >
@@ -57,14 +60,14 @@ export default function ErrorMessage({
             </svg>
           </div>
           <div className="ml-3 flex-1">
-            <p className="text-sm font-medium text-red-800">{message}</p>
+            <p className="text-sm font-medium text-red-300">{message}</p>
           </div>
           {onDismiss && (
             <div className="ml-auto pl-3">
               <button
                 type="button"
                 onClick={onDismiss}
-                className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+                className="inline-flex rounded-lg p-1.5 text-red-400 hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200"
                 aria-label="Dismiss error"
               >
                 <svg
@@ -87,7 +90,7 @@ export default function ErrorMessage({
   // Toast variant
   return (
     <div
-      className={`fixed bottom-4 right-4 max-w-md rounded-lg bg-red-50 border border-red-200 p-4 shadow-lg ${className}`}
+      className={`fixed bottom-4 right-4 max-w-md rounded-xl bg-red-500/10 border border-red-500/30 backdrop-blur-xl p-4 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-[slide-up_0.3s_ease-out] ${className}`}
       role="alert"
       aria-live="assertive"
     >
@@ -108,14 +111,14 @@ export default function ErrorMessage({
           </svg>
         </div>
         <div className="ml-3 flex-1">
-          <p className="text-sm font-medium text-red-800">{message}</p>
+          <p className="text-sm font-medium text-red-300">{message}</p>
         </div>
         {onDismiss && (
           <div className="ml-auto pl-3">
             <button
               type="button"
               onClick={onDismiss}
-              className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+              className="inline-flex rounded-lg p-1.5 text-red-400 hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200"
               aria-label="Dismiss error"
             >
               <svg
@@ -150,7 +153,7 @@ export function SuccessMessage({
 
   return (
     <div
-      className={`rounded-lg bg-green-50 border border-green-200 p-4 ${className}`}
+      className={`rounded-xl bg-green-500/10 border border-green-500/30 backdrop-blur-sm p-4 ${className}`}
       role="status"
       aria-live="polite"
     >
@@ -171,14 +174,14 @@ export function SuccessMessage({
           </svg>
         </div>
         <div className="ml-3 flex-1">
-          <p className="text-sm font-medium text-green-800">{message}</p>
+          <p className="text-sm font-medium text-green-300">{message}</p>
         </div>
         {onDismiss && (
           <div className="ml-auto pl-3">
             <button
               type="button"
               onClick={onDismiss}
-              className="inline-flex rounded-md bg-green-50 p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+              className="inline-flex rounded-lg p-1.5 text-green-400 hover:bg-green-500/20 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200"
               aria-label="Dismiss message"
             >
               <svg

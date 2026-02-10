@@ -38,24 +38,24 @@ export default function TaskItem({
   };
 
   return (
-    <div className="group rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start gap-3">
+    <div className="group rounded-xl border border-white/10 bg-gradient-to-br from-[#1a1a28]/90 to-[#12121a]/90 backdrop-blur-sm p-5 shadow-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:border-purple-500/50 hover:scale-[1.01]">
+      <div className="flex items-start gap-4">
         {/* Checkbox */}
         <button
           onClick={handleToggleComplete}
-          className="mt-1 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+          className="mt-1 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0f] rounded transition-transform duration-200 hover:scale-110"
           aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
         >
           <div
-            className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+            className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
               task.completed
-                ? 'bg-blue-600 border-blue-600'
-                : 'border-gray-300 hover:border-blue-500'
+                ? 'bg-gradient-to-br from-purple-600 to-fuchsia-600 border-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.6)]'
+                : 'border-gray-600 hover:border-purple-500 hover:shadow-[0_0_10px_rgba(139,92,246,0.4)]'
             }`}
           >
             {task.completed && (
               <svg
-                className="h-3 w-3 text-white"
+                className="h-4 w-4 text-white animate-[scale-in_0.2s_ease-out]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -75,10 +75,10 @@ export default function TaskItem({
         {/* Task Content */}
         <div className="flex-1 min-w-0">
           <h3
-            className={`text-base font-medium ${
+            className={`text-base font-semibold transition-all duration-300 ${
               task.completed
                 ? 'text-gray-500 line-through'
-                : 'text-gray-900'
+                : 'text-gray-100 group-hover:text-white'
             }`}
           >
             {task.title}
@@ -86,24 +86,29 @@ export default function TaskItem({
 
           {task.description && (
             <p
-              className={`mt-1 text-sm ${
-                task.completed ? 'text-gray-400' : 'text-gray-600'
+              className={`mt-2 text-sm leading-relaxed transition-colors duration-300 ${
+                task.completed ? 'text-gray-600' : 'text-gray-400 group-hover:text-gray-300'
               }`}
             >
               {task.description}
             </p>
           )}
 
-          <p className="mt-2 text-xs text-gray-500">
-            Created {new Date(task.created_at).toLocaleDateString()}
-          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{new Date(task.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
           <button
             onClick={() => onEdit(task)}
-            className="rounded p-1.5 text-gray-600 hover:bg-gray-100 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="rounded-lg p-2 text-gray-400 hover:bg-purple-500/20 hover:text-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 hover:scale-110"
             aria-label="Edit task"
           >
             <svg
@@ -124,7 +129,7 @@ export default function TaskItem({
 
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="rounded p-1.5 text-gray-600 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="rounded-lg p-2 text-gray-400 hover:bg-red-500/20 hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 hover:scale-110"
             aria-label="Delete task"
           >
             <svg
@@ -147,8 +152,8 @@ export default function TaskItem({
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-4">
-          <p className="text-sm text-red-800 mb-3">
+        <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-4 backdrop-blur-sm animate-[fade-in_0.2s_ease-out]">
+          <p className="text-sm text-red-300 mb-3">
             Are you sure you want to delete this task? This action cannot be undone.
           </p>
           <div className="flex gap-2">

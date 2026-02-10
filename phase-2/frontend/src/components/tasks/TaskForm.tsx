@@ -81,7 +81,7 @@ export default function TaskForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <Input
         type="text"
         name="title"
@@ -99,7 +99,7 @@ export default function TaskForm({
       <div className="w-full">
         <label
           htmlFor="description"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-semibold text-gray-300 mb-2"
         >
           Description
         </label>
@@ -110,17 +110,20 @@ export default function TaskForm({
           value={formData.description}
           onChange={handleChange}
           disabled={loading}
-          rows={3}
-          className="block w-full rounded-lg border border-gray-300 px-4 py-2 text-base text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          rows={4}
+          className="block w-full rounded-lg border border-gray-700 bg-[#1a1a28] px-4 py-3 text-base text-gray-100 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0f] hover:border-gray-600 disabled:bg-[#12121a] disabled:text-gray-600 disabled:cursor-not-allowed disabled:border-gray-800 placeholder:text-gray-500 focus:shadow-[0_0_20px_rgba(139,92,246,0.3)] resize-none"
         />
         {fieldErrors.description && (
-          <p className="mt-1 text-sm text-red-600" role="alert">
+          <p className="mt-2 text-sm text-red-400 flex items-center gap-1.5" role="alert">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
             {fieldErrors.description}
           </p>
         )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-2">
         <Button
           type="submit"
           variant="primary"

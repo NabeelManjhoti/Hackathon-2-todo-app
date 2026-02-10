@@ -96,10 +96,12 @@ export default function SigninForm() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-sm text-gray-600">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a1a28]/90 to-[#12121a]/90 backdrop-blur-xl p-8 shadow-[0_0_50px_rgba(139,92,246,0.3)]">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
+            Welcome Back
+          </h2>
+          <p className="mt-3 text-base text-gray-400">
             Sign in to access your tasks
           </p>
         </div>
@@ -116,7 +118,7 @@ export default function SigninForm() {
           <ErrorMessage message={error} variant="banner" className="mb-6" />
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <Input
             type="email"
             name="email"
@@ -157,12 +159,12 @@ export default function SigninForm() {
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-400">
             Don't have an account?{' '}
             <Link
               href="/signup"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-semibold text-transparent bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text hover:from-purple-300 hover:to-fuchsia-300 transition-all duration-300"
             >
               Sign up
             </Link>
