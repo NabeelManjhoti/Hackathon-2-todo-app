@@ -105,7 +105,7 @@ export default function TaskItem({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="flex gap-2 transition-all duration-300">
           <button
             onClick={() => onEdit(task)}
             className="rounded-lg p-2 text-gray-400 hover:bg-purple-500/20 hover:text-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 hover:scale-110"
