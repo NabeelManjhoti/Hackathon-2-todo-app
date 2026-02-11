@@ -42,7 +42,7 @@ export default function Header() {
               href="/dashboard"
               className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300"
             >
-              Todo App
+              Eclipse
             </Link>
 
             <nav className="hidden md:flex gap-6">
