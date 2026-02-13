@@ -24,6 +24,12 @@ class Settings:
         self.jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
         self.jwt_expiry_minutes: int = int(os.getenv("JWT_EXPIRY_MINUTES", "60"))
 
+        # AI Chatbot settings
+        self.openai_api_key: str = self._get_required_env("OPENAI_API_KEY")
+        self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
+        self.chat_timeout_seconds: int = int(os.getenv("CHAT_TIMEOUT_SECONDS", "30"))
+        self.max_conversation_history: int = int(os.getenv("MAX_CONVERSATION_HISTORY", "20"))
+
     def _get_required_env(self, key: str) -> str:
         """Get required environment variable or raise error.
 
