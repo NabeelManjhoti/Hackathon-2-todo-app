@@ -14,3 +14,4 @@ passlib[bcrypt]==1.7.4
 openai>=1.0.0
 mcp-sdk>=0.1.0
 tenacity>=8.0.0
+slowapi>=0.1.9

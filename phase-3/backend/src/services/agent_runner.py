@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.services.agent_config import get_system_prompt
-from src.services.mcp_tools import add_task, list_tasks, complete_task
+from src.services.mcp_tools import add_task, list_tasks, complete_task, update_task, delete_task
 from src.utils.retry import retry_with_backoff
 from src.utils.timeout import with_timeout
 from src.logger import structured_logger
@@ -88,6 +88,60 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_task",
+            "description": "Update a task's title, description, or due date",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "string",
+                        "description": "User ID (UUID)",
+                    },
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID (UUID)",
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "New task title (optional)",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New task description (optional)",
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "description": "New due date in ISO format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS (optional)",
+                    },
+                },
+                "required": ["user_id", "task_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_task",
+            "description": "Delete a task permanently. Use this when the user explicitly asks to delete or remove a task.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "string",
+                        "description": "User ID (UUID)",
+                    },
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task ID (UUID)",
+                    },
+                },
+                "required": ["user_id", "task_id"],
+            },
+        },
+    },
 ]
 
 
@@ -107,7 +161,13 @@ async def execute_tool_call(
         Tool execution result
     """
     try:
+        # Validate required parameters based on tool
         if tool_name == "add_task":
+            if not tool_args.get("user_id"):
+                return {"status": "error", "message": "Missing required parameter: user_id", "data": None}
+            if not tool_args.get("title"):
+                return {"status": "error", "message": "Missing required parameter: title", "data": None}
+
             return await add_task(
                 session=session,
                 user_id=tool_args.get("user_id"),
@@ -115,13 +175,46 @@ async def execute_tool_call(
                 description=tool_args.get("description", "")
             )
         elif tool_name == "list_tasks":
+            if not tool_args.get("user_id"):
+                return {"status": "error", "message": "Missing required parameter: user_id", "data": None}
+
             return await list_tasks(
                 session=session,
                 user_id=tool_args.get("user_id"),
                 status_filter=tool_args.get("status_filter", "all")
             )
         elif tool_name == "complete_task":
+            if not tool_args.get("user_id"):
+                return {"status": "error", "message": "Missing required parameter: user_id", "data": None}
+            if not tool_args.get("task_id"):
+                return {"status": "error", "message": "Missing required parameter: task_id", "data": None}
+
             return await complete_task(
+                session=session,
+                user_id=tool_args.get("user_id"),
+                task_id=tool_args.get("task_id")
+            )
+        elif tool_name == "update_task":
+            if not tool_args.get("user_id"):
+                return {"status": "error", "message": "Missing required parameter: user_id", "data": None}
+            if not tool_args.get("task_id"):
+                return {"status": "error", "message": "Missing required parameter: task_id", "data": None}
+
+            return await update_task(
+                session=session,
+                user_id=tool_args.get("user_id"),
+                task_id=tool_args.get("task_id"),
+                title=tool_args.get("title"),
+                description=tool_args.get("description"),
+                due_date=tool_args.get("due_date")
+            )
+        elif tool_name == "delete_task":
+            if not tool_args.get("user_id"):
+                return {"status": "error", "message": "Missing required parameter: user_id", "data": None}
+            if not tool_args.get("task_id"):
+                return {"status": "error", "message": "Missing required parameter: task_id", "data": None}
+
+            return await delete_task(
                 session=session,
                 user_id=tool_args.get("user_id"),
                 task_id=tool_args.get("task_id")
@@ -232,6 +325,27 @@ async def run_agent(
             "tool_calls": tool_calls_data if tool_calls_data else None
         }
 
+    except TimeoutError:
+        # Graceful degradation for timeout
+        structured_logger.log("ERROR", "OpenAI API timeout", user_id=user_id)
+        return {
+            "response": "I'm sorry, but the AI service is taking longer than expected to respond. Please try again in a moment.",
+            "tool_calls": None
+        }
     except Exception as e:
-        structured_logger.log("ERROR", "Agent execution failed", error=str(e))
-        raise
+        # Graceful degradation for OpenAI API failures
+        error_msg = str(e)
+        structured_logger.log("ERROR", "Agent execution failed", error=error_msg, user_id=user_id)
+
+        # Check if it's an OpenAI API error
+        if "openai" in error_msg.lower() or "api" in error_msg.lower():
+            return {
+                "response": "I'm having trouble connecting to the AI service right now. Please try again in a few moments. If the problem persists, you can still manage your tasks directly through the task management interface.",
+                "tool_calls": None
+            }
+
+        # Generic error fallback
+        return {
+            "response": "I encountered an unexpected error while processing your request. Please try rephrasing your message or try again later.",
+            "tool_calls": None
+        }

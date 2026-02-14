@@ -1,8 +1,10 @@
 """Conversation service for managing chat history and context."""
 
-from typing import List
+from datetime import datetime
+from typing import Dict, List, Optional
 from uuid import UUID
 
+from sqlalchemy import func, delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -103,3 +105,162 @@ async def get_or_create_conversation(
         await session.commit()
         await session.refresh(conversation)
         return conversation
+
+
+async def list_user_conversations(
+    session: AsyncSession,
+    user_id: UUID,
+    limit: int = 50,
+    offset: int = 0
+) -> Dict[str, any]:
+    """List all conversations for a user with pagination.
+
+    Args:
+        session: Database session
+        user_id: User ID
+        limit: Maximum number of conversations to return
+        offset: Number of conversations to skip
+
+    Returns:
+        Dictionary with conversations list and total count
+    """
+    # Get total count
+    count_statement = (
+        select(func.count(Conversation.id))
+        .where(Conversation.user_id == user_id)
+    )
+    count_result = await session.execute(count_statement)
+    total = count_result.scalar_one()
+
+    # Get conversations with message count and last message
+    statement = (
+        select(Conversation)
+        .where(Conversation.user_id == user_id)
+        .order_by(Conversation.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    result = await session.execute(statement)
+    conversations = result.scalars().all()
+
+    # Format conversations with additional data
+    conversations_data = []
+    for conv in conversations:
+        # Get message count
+        msg_count_stmt = (
+            select(func.count(Message.id))
+            .where(Message.conversation_id == conv.id)
+        )
+        msg_count_result = await session.execute(msg_count_stmt)
+        message_count = msg_count_result.scalar_one()
+
+        # Get last message
+        last_msg_stmt = (
+            select(Message)
+            .where(Message.conversation_id == conv.id)
+            .order_by(Message.timestamp.desc())
+            .limit(1)
+        )
+        last_msg_result = await session.execute(last_msg_stmt)
+        last_message = last_msg_result.scalar_one_or_none()
+
+        conversations_data.append({
+            "id": str(conv.id),
+            "created_at": conv.created_at.isoformat(),
+            "updated_at": conv.updated_at.isoformat(),
+            "message_count": message_count,
+            "last_message": last_message.content[:100] if last_message else None
+        })
+
+    return {
+        "conversations": conversations_data,
+        "total": total
+    }
+
+
+async def get_conversation_with_messages(
+    session: AsyncSession,
+    user_id: UUID,
+    conversation_id: UUID
+) -> Optional[Dict[str, any]]:
+    """Get a conversation with all its messages.
+
+    Args:
+        session: Database session
+        user_id: User ID
+        conversation_id: Conversation ID
+
+    Returns:
+        Dictionary with conversation details and messages, or None if not found
+    """
+    # Get conversation with user isolation
+    statement = select(Conversation).where(
+        Conversation.id == conversation_id,
+        Conversation.user_id == user_id
+    )
+    result = await session.execute(statement)
+    conversation = result.scalar_one_or_none()
+
+    if not conversation:
+        return None
+
+    # Get all messages for this conversation
+    messages_stmt = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.timestamp.asc())
+    )
+    messages_result = await session.execute(messages_stmt)
+    messages = messages_result.scalars().all()
+
+    # Format messages
+    messages_data = [
+        {
+            "id": str(msg.id),
+            "role": msg.role,
+            "content": msg.content,
+            "tool_calls": msg.tool_calls,
+            "timestamp": msg.timestamp.isoformat()
+        }
+        for msg in messages
+    ]
+
+    return {
+        "id": str(conversation.id),
+        "created_at": conversation.created_at.isoformat(),
+        "updated_at": conversation.updated_at.isoformat(),
+        "messages": messages_data
+    }
+
+
+async def delete_user_conversation(
+    session: AsyncSession,
+    user_id: UUID,
+    conversation_id: UUID
+) -> bool:
+    """Delete a conversation and all its messages.
+
+    Args:
+        session: Database session
+        user_id: User ID
+        conversation_id: Conversation ID
+
+    Returns:
+        True if deleted, False if not found or access denied
+    """
+    # Verify conversation exists and belongs to user
+    statement = select(Conversation).where(
+        Conversation.id == conversation_id,
+        Conversation.user_id == user_id
+    )
+    result = await session.execute(statement)
+    conversation = result.scalar_one_or_none()
+
+    if not conversation:
+        return False
+
+    # Delete conversation (messages will cascade delete due to relationship)
+    await session.delete(conversation)
+    await session.commit()
+
+    return True
